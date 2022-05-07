@@ -6,7 +6,7 @@
   "scripts": {
     "cypress:open": "npm run cypress",
     "cypress:run": "npm run cypress run --record --spec \"src/sample.spec.js\"",
-    "test": "mocha src/**/*spec.js"
+    "test": "cypress run --reporter src/reporter"
   },
   "repository": {
     "type": "git",
@@ -21,5 +21,11 @@
   "devDependencies": {
     "cypress": "^9.6.0",
     "mocha": "^10.0.0"
+  },
+  "dependencies": {
+    "md5": "^2.3.0",
+    "mkdirp": "^1.0.4",
+    "strip-ansi": "^6.0.1",
+    "xml": "^1.0.1"
   }
 }

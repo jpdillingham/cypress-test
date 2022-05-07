@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="Mocha Tests" time="2.5580" tests="1" failures="0">
-  <testsuite name="Root Suite" timestamp="2022-05-07T16:45:01" tests="0" file="cypress/integration/1-getting-started/todo.spec.js" time="0.0000" failures="0">
+<testsuites name="Mocha Tests" time="2.8260" tests="1" failures="0">
+  <testsuite name="Root Suite" timestamp="2022-05-07T16:52:26" tests="0" file="cypress/integration/1-getting-started/todo.spec.js" time="0.0000" failures="0">
   </testsuite>
-  <testsuite name="example to-do app" timestamp="2022-05-07T16:45:01" tests="1" time="2.4850" failures="0">
-    <testcase name="example to-do app displays two todo items by default" time="0.7230" classname="displays two todo items by default">
+  <testsuite name="example to-do app" timestamp="2022-05-07T16:52:26" tests="1" time="2.7660" failures="0">
+    <testcase name="example to-do app displays two todo items by default" time="0.8640" classname="displays two todo items by default">
       <properties>
         <property name="canPropsAlsoGoInSuite" value="true"/>
         <property name="tags" value="#smoke,#tag"/>
