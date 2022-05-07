@@ -16,5 +16,8 @@ jobs:
       - checkout
       - run: npm install
       - run: npm test
+      - run: find .
       - store_test_results:
-          path: /home/circleci/test-results.xml
+          path: test-results.xml
+      - store_artifacts:
+          path: test-results.xml
