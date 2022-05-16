@@ -308,7 +308,7 @@ MochaJUnitReporter.prototype.getTestsuiteData = function(suite) {
     _attr.errors = 0;
     this._antId += 1;
   }
-  console.log(util.inspect(testSuite, false, null, true /* enable colors */))
+
   return testSuite;
 };
 
@@ -323,13 +323,22 @@ MochaJUnitReporter.prototype.getTestcaseData = function (test, err) {
   var flipClassAndName = this._options.testCaseSwitchClassnameAndName;
   var name = stripAnsi(jenkinsMode ? getJenkinsClassname(test, this._options) : test.fullTitle());
   var classname = stripAnsi(test.title);
+
+  // inspect the supplied test object to see if it has any user-created properties
+  const testConfigCustomProperties = test?._testConfig?.unverifiedTestConfig;
+
+  console.log(testConfigCustomProperties);
+
+  const properties = {
+    name: flipClassAndName ? classname : name,
+    time: (typeof test.duration === 'undefined') ? 0 : test.duration / 1000,
+    classname: flipClassAndName ? name : classname,
+    ...testConfigCustomProperties
+  }
+
   var testcase = {
     testcase: [{
-      _attr: {
-        name: flipClassAndName ? classname : name,
-        time: (typeof test.duration === 'undefined') ? 0 : test.duration / 1000,
-        classname: flipClassAndName ? name : classname
-      }
+      _attr: properties
     }]
   };
 
@@ -375,18 +384,6 @@ MochaJUnitReporter.prototype.getTestcaseData = function (test, err) {
     testcase.testcase.push({ failure: failureElement });
   }
 
-  console.log(util.inspect(test, false, null, true /* enable colors */))
-
-  // inspect the supplied test object to see if it has any user-created properties
-  const testConfigCustomProperties = test?._testConfig?.unverifiedTestConfig;
-  
-  if (testConfigCustomProperties) {
-    testcase.testcase.push({
-      properties: Object.entries(testConfigCustomProperties).map(([name, value]) => ({ property: { _attr: { name, value } } }))
-    });
-  }
-
-  console.log(util.inspect(testcase, false, null, true /* enable colors */))
   return testcase;
 };
 
