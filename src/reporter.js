@@ -324,21 +324,29 @@ MochaJUnitReporter.prototype.getTestcaseData = function (test, err) {
   var name = stripAnsi(jenkinsMode ? getJenkinsClassname(test, this._options) : test.fullTitle());
   var classname = stripAnsi(test.title);
 
-  // inspect the supplied test object to see if it has any user-created properties
-  const testConfigCustomProperties = test?._testConfig?.unverifiedTestConfig;
-
-  console.log(testConfigCustomProperties);
-
-  const properties = {
+  const standardProperties = {
     name: flipClassAndName ? classname : name,
     time: (typeof test.duration === 'undefined') ? 0 : test.duration / 1000,
     classname: flipClassAndName ? name : classname,
-    ...testConfigCustomProperties
+    failed: !!err, // non-standard property
   }
 
+  // inspect the supplied test object to see if it has any user-created properties
+  // this object will be present if the tests were run by Cypress, and if any additional key/value pairs
+  // were added to the test.
+  const customProperties = test?._testConfig?.unverifiedTestConfig || {};
+
+  // remove any custom properties that would overwrite a standard property
+  Object.keys(standardProperties).forEach(key => {
+    delete customProperties[key];
+  });
+  
   var testcase = {
     testcase: [{
-      _attr: properties
+      _attr: {
+        ...standardProperties,
+        ...customProperties,
+      },
     }]
   };
 

@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="Mocha Tests" time="2.6640" tests="1" failures="1">
-  <testsuite name="Root Suite" timestamp="2022-05-07T17:01:56" tests="0" file="cypress/integration/1-getting-started/todo.spec.js" time="0.0000" failures="0">
+<testsuites name="Mocha Tests" time="6.6580" tests="3" failures="3">
+  <testsuite name="Root Suite" timestamp="2022-05-16T20:01:57" tests="0" file="cypress/integration/1-getting-started/todo.spec.js" time="0.0000" failures="0">
   </testsuite>
-  <testsuite name="example to-do app" timestamp="2022-05-07T17:01:56" tests="1" time="2.6010" failures="0">
-    <testcase name="example to-do app displays two todo items by default" time="0.0000" classname="displays two todo items by default">
-      <failure message="Invalid Chai property: toBe. Did you mean &quot;to&quot;?" type="Error"><![CDATA[Error: Invalid Chai property: toBe. Did you mean "to"?
-    at Object.proxyGetter [as get] (https://example.cypress.io/__cypress/runner/cypress_runner.js:104428:17)
-From Your Spec Code:
-    at Context.eval (https://example.cypress.io/__cypress/tests?p=cypress\integration\1-getting-started\todo.spec.js:134:5)]]></failure>
-      <properties>
-        <property name="canPropsAlsoGoInSuite" value="true"/>
-        <property name="tags" value="#smoke,#tag"/>
-        <property name="teams" value="@team1,@team2"/>
-      </properties>
+  <testsuite name="example to-do app" timestamp="2022-05-16T20:01:57" tests="1" file="cypress/integration/1-getting-started/todo.spec.js" time="0.0000" failures="1">
+    <testcase name="foo" time="0.0000" classname="displays two todo items by default" failed="true" canPropsAlsoGoInSuite="true" teams="@team1,@team2" tags="#smoke,#tag">
+      <failure message="expected true to equal false" type="AssertionError"><![CDATA[AssertionError: expected true to equal false
+    at Context.eval (https://example.cypress.io/__cypress/tests?p=cypress/integration/1-getting-started/todo.spec.js:136:21)]]></failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="what" timestamp="2022-05-16T20:02:02" tests="0" file="cypress/integration/1-getting-started/todo.spec.js" time="0.0000" failures="0">
+  </testsuite>
+  <testsuite name="about" timestamp="2022-05-16T20:02:02" tests="0" file="cypress/integration/1-getting-started/todo.spec.js" time="0.0000" failures="0">
+  </testsuite>
+  <testsuite name="nested suites?" timestamp="2022-05-16T20:02:02" tests="2" time="1.3180" file="cypress/integration/1-getting-started/todo.spec.js" failures="2">
+    <testcase name="example to-do app what about nested suites? test 2" time="0.0000" classname="test 2" failed="true" canPropsAlsoGoInSuite="true" teams="@team3,@team4" tags="#smoke,#tag">
+      <failure message="expected true to equal false" type="AssertionError"><![CDATA[AssertionError: expected true to equal false
+    at Context.eval (https://example.cypress.io/__cypress/tests?p=cypress/integration/1-getting-started/todo.spec.js:157:27)]]></failure>
+    </testcase>
+    <testcase name="example to-do app what about nested suites? test 3" time="0.0000" classname="test 3" failed="true" canPropsAlsoGoInSuite="true" teams="@team5">
+      <failure message="expected true to equal false" type="AssertionError"><![CDATA[AssertionError: expected true to equal false
+    at Context.eval (https://example.cypress.io/__cypress/tests?p=cypress/integration/1-getting-started/todo.spec.js:170:27)]]></failure>
     </testcase>
   </testsuite>
 </testsuites>

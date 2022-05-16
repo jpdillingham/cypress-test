@@ -25,7 +25,7 @@ describe(
 
     it(
       "displays two todo items by default",
-      { tags: ["#smoke", "#tag"], teams: ["@team1", "@team2"] },
+      { name: 'foo', tags: ["#smoke", "#tag"], teams: ["@team1", "@team2"] },
       () => {
         // We use the `cy.get()` command to get all elements that match the selector.
         // Then, we use `should` to assert that there are two matched items,
