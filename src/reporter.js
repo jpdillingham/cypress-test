@@ -428,7 +428,9 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
   var hasProperties = (!!this._options.properties) || antMode;
   var Date = this._Date;
 
-  testsuites.forEach(function(suite) {
+  const suiteFileName = testsuites[0].testsuite[0]._attr.file;
+
+  testsuites.forEach(function (suite) {
     var _suiteAttr = suite.testsuite[0]._attr;
     // testsuite is an array: [attrs, properties?, testcase, testcase, …]
     // we want to make sure that we are grabbing test cases at the correct index
@@ -439,17 +441,21 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
     // suiteTime has unrounded time as a Number of milliseconds
     var suiteTime = _suiteAttr.time;
 
+    _suiteAttr.file = suiteFileName;
     _suiteAttr.time = (suiteTime / 1000 || 0).toFixed(4);
-    _suiteAttr.timestamp = new Date(_suiteAttr.timestamp).toISOString().slice(0, -5);
+    _suiteAttr.timestamp = new Date(_suiteAttr.timestamp)
+      .toISOString()
+      .slice(0, -5);
     _suiteAttr.failures = 0;
     _suiteAttr.skipped = 0;
 
-    _cases.forEach(function(testcase) {
+    _cases.forEach(function (testcase) {
       var lastNode = testcase.testcase[testcase.testcase.length - 1];
 
-      _suiteAttr.skipped += Number('skipped' in lastNode);
-      _suiteAttr.failures += Number('failure' in lastNode);
-      testcase.testcase[0]._attr.time = testcase.testcase[0]._attr.time.toFixed(4);
+      _suiteAttr.skipped += Number("skipped" in lastNode);
+      _suiteAttr.failures += Number("failure" in lastNode);
+      testcase.testcase[0]._attr.time =
+        testcase.testcase[0]._attr.time.toFixed(4);
     });
 
     if (antMode) {
