@@ -106,5 +106,6 @@ dist
 cypress/downloads
 cypress/screenshots
 cypress/videos
+cypress/results
 
 test-**.xml

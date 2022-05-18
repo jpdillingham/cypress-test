@@ -1,6 +1,5 @@
 'use strict';
 
-const util = require('util')
 var xml = require('xml');
 var Base = require('mocha').reporters.Base;
 var fs = require('fs');
@@ -312,11 +311,11 @@ MochaJUnitReporter.prototype.getTestsuiteData = function(suite) {
   return testSuite;
 };
 
-function getKeywordsFromTestData({ testName, customProperties, keywordPattern, propertyName }) {
-  const keywordsFromName = testName.match(keywordPattern) || []
-  let keywordsFromCustomProperties = [];
+function getKeywordsFromTestData(testName, customProperties, keywordPattern, propertyName) {
+  var keywordsFromName = testName.match(keywordPattern) || [];
+  var keywordsFromCustomProperties = [];
 
-  const propertyValue = customProperties[propertyName];
+  var propertyValue = customProperties[propertyName];
 
   if (propertyValue != undefined) {
     if (Array.isArray(propertyValue)) {
@@ -324,14 +323,22 @@ function getKeywordsFromTestData({ testName, customProperties, keywordPattern, p
     } else if (typeof propertyValue === 'string' || propertyValue instanceof String) {
       keywordsFromCustomProperties = propertyValue.split(',');
     } else {
-      console.warn(`the '${propertyName}' custom property value for test '${testName}' was neither an array nor a string (actual: ${propertyValue}), and was ignored. this probably means that the test metadata isn't working the way it was intended.`);
+      console.warn('the ' + propertyName + ' custom property value for test \'' + testName + '\' was neither an array nor a string (actual: ' + propertyValue + '), and was ignored. this probably means that the test metadata isn\'t working the way it was intended.');
     }
   }
 
-  const allKeywords = [...keywordsFromName, ...keywordsFromCustomProperties];
-  const trimmedKeywords = allKeywords.map(keyword => keyword.trim());
-  const dedupedKeywords = [...new Set(trimmedKeywords)]
-  return dedupedKeywords;
+  var allKeywords = keywordsFromName.concat(keywordsFromCustomProperties);
+  var trimmedAndDedupedKeywords = [];
+
+  for (var i = 0; i < allKeywords.length; i++) {
+    var cleaned = allKeywords[i].trim();
+
+    if (trimmedAndDedupedKeywords.indexOf(cleaned) === -1) {
+      trimmedAndDedupedKeywords.push(cleaned);
+    }
+  }
+
+  return trimmedAndDedupedKeywords;
 }
 
 /**
@@ -340,38 +347,35 @@ function getKeywordsFromTestData({ testName, customProperties, keywordPattern, p
  * @param {object} err - if test failed, the failure object
  * @returns {object}
  */
-MochaJUnitReporter.prototype.getTestcaseData = function (test, err) {
+MochaJUnitReporter.prototype.getTestcaseData = function(test, err) {
   var jenkinsMode = this._options.jenkinsMode;
   var flipClassAndName = this._options.testCaseSwitchClassnameAndName;
   var name = stripAnsi(jenkinsMode ? getJenkinsClassname(test, this._options) : test.fullTitle());
   var classname = stripAnsi(test.title);
 
-  const standardProperties = {
+  var standardProperties = {
     name: flipClassAndName ? classname : name,
     time: (typeof test.duration === 'undefined') ? 0 : test.duration / 1000,
     classname: flipClassAndName ? name : classname,
     failed: !!err, // actually a non-standard property
-  }
+  };
 
   // inspect the supplied test object to see if it has any user-created properties
   // this object will be present if the tests were run by Cypress, and if any additional key/value pairs
   // were added to the test.
-  let customProperties = test?._testConfig?.unverifiedTestConfig || {};
-  
+  var customProperties = test && test._testConfig && test._testConfig.unverifiedTestConfig || {};
+
   if (customProperties !== {}) {
     // limit custom properties to just tags and teams, dropping all others
     customProperties = {
-      tags: getKeywordsFromTestData({ testName: name, customProperties, keywordPattern: /(#\w+)/g, propertyName: 'tags' }),
-      teams: getKeywordsFromTestData({ testName: name, customProperties, keywordPattern: /(@\w+)/g, propertyName: 'teams' }),
+      tags: getKeywordsFromTestData(name, customProperties, /(#\w+)/g, 'tags'),
+      teams: getKeywordsFromTestData(name, customProperties, /(@\w+)/g, 'teams'),
     };
   }
 
   var testcase = {
     testcase: [{
-      _attr: {
-        ...standardProperties,
-        ...customProperties,
-      },
+      _attr: Object.assign({}, standardProperties, customProperties),
     }]
   };
 
@@ -389,11 +393,11 @@ MochaJUnitReporter.prototype.getTestcaseData = function (test, err) {
     ));
   }
   if (systemOutLines.length > 0) {
-    testcase.testcase.push({ 'system-out': this.removeInvalidCharacters(stripAnsi(systemOutLines.join('\n'))) });
+    testcase.testcase.push({'system-out': this.removeInvalidCharacters(stripAnsi(systemOutLines.join('\n')))});
   }
 
   if (this._options.outputs && (test.consoleErrors && test.consoleErrors.length > 0)) {
-    testcase.testcase.push({ 'system-err': this.removeInvalidCharacters(stripAnsi(test.consoleErrors.join('\n'))) });
+    testcase.testcase.push({'system-err': this.removeInvalidCharacters(stripAnsi(test.consoleErrors.join('\n')))});
   }
 
   if (err) {
@@ -406,6 +410,12 @@ MochaJUnitReporter.prototype.getTestcaseData = function (test, err) {
       message = '';
     }
     var failureMessage = err.stack || message;
+    if (!Base.hideDiff && err.expected !== undefined) {
+        var oldUseColors = Base.useColors;
+        Base.useColors = false;
+        failureMessage += "\n" + Base.generateDiff(err.actual, err.expected);
+        Base.useColors = oldUseColors;
+    }
     var failureElement = {
       _attr: {
         message: this.removeInvalidCharacters(message) || '',
@@ -414,9 +424,8 @@ MochaJUnitReporter.prototype.getTestcaseData = function (test, err) {
       _cdata: this.removeInvalidCharacters(failureMessage)
     };
 
-    testcase.testcase.push({ failure: failureElement });
+    testcase.testcase.push({failure: failureElement});
   }
-
   return testcase;
 };
 
@@ -458,9 +467,9 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
   var hasProperties = (!!this._options.properties) || antMode;
   var Date = this._Date;
 
-  const suiteFileName = testsuites[0].testsuite[0]._attr.file;
+  var suiteFileName = testsuites[0].testsuite[0]._attr.file;
 
-  testsuites.forEach(function (suite) {
+  testsuites.forEach(function(suite) {
     var _suiteAttr = suite.testsuite[0]._attr;
     // testsuite is an array: [attrs, properties?, testcase, testcase, …]
     // we want to make sure that we are grabbing test cases at the correct index
@@ -471,21 +480,18 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
     // suiteTime has unrounded time as a Number of milliseconds
     var suiteTime = _suiteAttr.time;
 
-    _suiteAttr.file = suiteFileName;
-    _suiteAttr.time = (suiteTime / 1000 || 0).toFixed(4);
-    _suiteAttr.timestamp = new Date(_suiteAttr.timestamp)
-      .toISOString()
-      .slice(0, -5);
+    _suiteAttr.time = (suiteTime / 1000 || 0).toFixed(3);
+    _suiteAttr.timestamp = new Date(_suiteAttr.timestamp).toISOString().slice(0, -5);
     _suiteAttr.failures = 0;
     _suiteAttr.skipped = 0;
+    _suiteAttr.file = suiteFileName;
 
-    _cases.forEach(function (testcase) {
+    _cases.forEach(function(testcase) {
       var lastNode = testcase.testcase[testcase.testcase.length - 1];
 
-      _suiteAttr.skipped += Number("skipped" in lastNode);
-      _suiteAttr.failures += Number("failure" in lastNode);
-      testcase.testcase[0]._attr.time =
-        testcase.testcase[0]._attr.time.toFixed(4);
+      _suiteAttr.skipped += Number('skipped' in lastNode);
+      _suiteAttr.failures += Number('failure' in lastNode);
+      testcase.testcase[0]._attr.time = testcase.testcase[0]._attr.time.toFixed(3);
     });
 
     if (antMode) {
@@ -514,7 +520,7 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
     var rootSuite = {
       _attr: {
         name: this._options.testsuitesTitle,
-        time: (stats.duration / 1000 || 0).toFixed(4),
+        time: (stats.duration / 1000 || 0).toFixed(3),
         tests: totalTests,
         failures: stats.failures
       }

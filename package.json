@@ -6,7 +6,7 @@
   "scripts": {
     "cypress:open": "npm run cypress",
     "cypress:run": "npm run cypress run --record --spec \"src/sample.spec.js\"",
-    "test": "cypress run --reporter src/reporter"
+    "test": "cypress run --reporter src/reporter --reporter-options mochaFile=./cypress/results/[hash].xml"
   },
   "repository": {
     "type": "git",
