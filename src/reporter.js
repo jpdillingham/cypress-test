@@ -312,6 +312,28 @@ MochaJUnitReporter.prototype.getTestsuiteData = function(suite) {
   return testSuite;
 };
 
+function getKeywordsFromTestData({ testName, customProperties, keywordPattern, propertyName }) {
+  const keywordsFromName = testName.match(keywordPattern) || []
+  let keywordsFromCustomProperties = [];
+
+  const propertyValue = customProperties[propertyName];
+
+  if (propertyValue != undefined) {
+    if (Array.isArray(propertyValue)) {
+      keywordsFromCustomProperties = propertyValue;
+    } else if (typeof propertyValue === 'string' || propertyValue instanceof String) {
+      keywordsFromCustomProperties = propertyValue.split(',');
+    } else {
+      console.warn(`the '${propertyName}' custom property value for test '${testName}' was neither an array nor a string (actual: ${propertyValue}), and was ignored. this probably means that the test metadata isn't working the way it was intended.`);
+    }
+  }
+
+  const allKeywords = [...keywordsFromName, ...keywordsFromCustomProperties];
+  const trimmedKeywords = allKeywords.map(keyword => keyword.trim());
+  const dedupedKeywords = [...new Set(trimmedKeywords)]
+  return dedupedKeywords;
+}
+
 /**
  * Produces an xml config for a given test case.
  * @param {object} test - test case
@@ -328,19 +350,22 @@ MochaJUnitReporter.prototype.getTestcaseData = function (test, err) {
     name: flipClassAndName ? classname : name,
     time: (typeof test.duration === 'undefined') ? 0 : test.duration / 1000,
     classname: flipClassAndName ? name : classname,
-    failed: !!err, // non-standard property
+    failed: !!err, // actually a non-standard property
   }
 
   // inspect the supplied test object to see if it has any user-created properties
   // this object will be present if the tests were run by Cypress, and if any additional key/value pairs
   // were added to the test.
-  const customProperties = test?._testConfig?.unverifiedTestConfig || {};
-
-  // remove any custom properties that would overwrite a standard property
-  Object.keys(standardProperties).forEach(key => {
-    delete customProperties[key];
-  });
+  let customProperties = test?._testConfig?.unverifiedTestConfig || {};
   
+  if (customProperties !== {}) {
+    // limit custom properties to just tags and teams, dropping all others
+    customProperties = {
+      tags: getKeywordsFromTestData({ testName: name, customProperties, keywordPattern: /(#\w+)/g, propertyName: 'tags' }),
+      teams: getKeywordsFromTestData({ testName: name, customProperties, keywordPattern: /(@\w+)/g, propertyName: 'teams' }),
+    };
+  }
+
   var testcase = {
     testcase: [{
       _attr: {
