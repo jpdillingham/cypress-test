@@ -67,6 +67,7 @@ function configureDefaults(options) {
   config.attachments = getSetting(config.attachments, 'ATTACHMENTS', false);
   config.antMode = getSetting(config.antMode, 'ANT_MODE', false);
   config.jenkinsMode = getSetting(config.jenkinsMode, 'JENKINS_MODE', false);
+  config.circleCIMode = getSetting(config.circleCIMode, 'CIRCLE_CI_MODE', false);
   config.properties = getSetting(config.properties, 'PROPERTIES', null, parsePropertiesFromEnv);
   config.toConsole = !!config.toConsole;
   config.rootSuiteTitle = config.rootSuiteTitle || 'Root Suite';
@@ -311,43 +312,13 @@ MochaJUnitReporter.prototype.getTestsuiteData = function(suite) {
   return testSuite;
 };
 
-function getKeywordsFromTestData(testName, customProperties, keywordPattern, propertyName) {
-  var keywordsFromName = testName.match(keywordPattern) || [];
-  var keywordsFromCustomProperties = [];
-
-  var propertyValue = customProperties[propertyName];
-
-  if (propertyValue != undefined) {
-    if (Array.isArray(propertyValue)) {
-      keywordsFromCustomProperties = propertyValue;
-    } else if (typeof propertyValue === 'string' || propertyValue instanceof String) {
-      keywordsFromCustomProperties = propertyValue.split(',');
-    } else {
-      console.warn('the ' + propertyName + ' custom property value for test \'' + testName + '\' was neither an array nor a string (actual: ' + propertyValue + '), and was ignored. this probably means that the test metadata isn\'t working the way it was intended.');
-    }
-  }
-
-  var allKeywords = keywordsFromName.concat(keywordsFromCustomProperties);
-  var trimmedAndDedupedKeywords = [];
-
-  for (var i = 0; i < allKeywords.length; i++) {
-    var cleaned = allKeywords[i].trim();
-
-    if (trimmedAndDedupedKeywords.indexOf(cleaned) === -1) {
-      trimmedAndDedupedKeywords.push(cleaned);
-    }
-  }
-
-  return trimmedAndDedupedKeywords;
-}
-
 /**
  * Produces an xml config for a given test case.
  * @param {object} test - test case
  * @param {object} err - if test failed, the failure object
  * @returns {object}
  */
-MochaJUnitReporter.prototype.getTestcaseData = function(test, err) {
+ MochaJUnitReporter.prototype.getTestcaseData = function(test, err) {
   var jenkinsMode = this._options.jenkinsMode;
   var flipClassAndName = this._options.testCaseSwitchClassnameAndName;
   var name = stripAnsi(jenkinsMode ? getJenkinsClassname(test, this._options) : test.fullTitle());
@@ -360,22 +331,47 @@ MochaJUnitReporter.prototype.getTestcaseData = function(test, err) {
     failed: !!err, // actually a non-standard property
   };
 
-  // inspect the supplied test object to see if it has any user-created properties
-  // this object will be present if the tests were run by Cypress, and if any additional key/value pairs
-  // were added to the test.
-  var customProperties = test && test._testConfig && test._testConfig.unverifiedTestConfig || {};
+  // extract tags and teams from the test name
+  // this regex matches any whole word beginning with # or @
+  // includes words surrounded by parenthesis, square brackets, and punctuation
+  var tagsFromName = name.match(/([#|@]\w+)/g) || [];
 
-  if (customProperties !== {}) {
-    // limit custom properties to just tags and teams, dropping all others
-    customProperties = {
-      tags: getKeywordsFromTestData(name, customProperties, /(#\w+)/g, 'tags'),
-      teams: getKeywordsFromTestData(name, customProperties, /(@\w+)/g, 'teams'),
-    };
+  // inspect the supplied test object to see if it has any user-created properties
+  // this object will be present if the tests were run by Cypress, and if any additional
+  // key/value pairs were added to the test.
+  var customProperties = test && test._testConfig && test._testConfig.unverifiedTestConfig || {};
+  var tagPropertyValue = customProperties['tags'];
+
+  var tagsFromProperties = [];
+
+  // the 'tags' property can contain tags in a comma separated string, or in an array
+  // figure out which format is used, and ensure we end up with an array
+  if (tagPropertyValue !== undefined) {
+    if (Array.isArray(tagPropertyValue)) {
+      tagsFromProperties = tagPropertyValue;
+    } else if (typeof tagPropertyValue === 'string' || tagPropertyValue instanceof String) {
+      tagsFromProperties = tagPropertyValue.split(',');
+    } else {
+      console.warn('the "tags" custom property value for test "' + name + '" was neither an array nor a string (actual: ' + tagPropertyValue + '), and was ignored. this probably means that the test metadata isn\'t working the way it was intended.');
+    }
+  }
+
+  // combine the tags from both sources, trim spaces from the beginning and end,
+  // and deduplicate them
+  var allTags = tagsFromName.concat(tagsFromProperties);
+  var trimmedAndDedupedTags = [];
+
+  for (var i = 0; i < allTags.length; i++) {
+    var cleaned = allTags[i].trim();
+
+    if (trimmedAndDedupedTags.indexOf(cleaned) === -1) {
+      trimmedAndDedupedTags.push(cleaned);
+    }
   }
 
   var testcase = {
     testcase: [{
-      _attr: Object.assign({}, standardProperties, customProperties),
+      _attr: Object.assign({}, standardProperties, { tags: trimmedAndDedupedTags }),
     }]
   };
 
@@ -463,11 +459,12 @@ MochaJUnitReporter.prototype.flush = function(testsuites){
 MochaJUnitReporter.prototype.getXml = function(testsuites) {
   var totalTests = 0;
   var stats = this._runner.stats;
+  var circleCIMode = this._options.circleCIMode;
   var antMode = this._options.antMode;
   var hasProperties = (!!this._options.properties) || antMode;
   var Date = this._Date;
 
-  var suiteFileName = testsuites[0].testsuite[0]._attr.file;
+  var suiteFileName = testsuites[0] && testsuites[0].testsuite[0] && testsuites[0].testsuite[0]._attr && testsuites[0].testsuite[0]._attr.file;
 
   testsuites.forEach(function(suite) {
     var _suiteAttr = suite.testsuite[0]._attr;
@@ -484,7 +481,10 @@ MochaJUnitReporter.prototype.getXml = function(testsuites) {
     _suiteAttr.timestamp = new Date(_suiteAttr.timestamp).toISOString().slice(0, -5);
     _suiteAttr.failures = 0;
     _suiteAttr.skipped = 0;
-    _suiteAttr.file = suiteFileName;
+
+    if (circleCIMode) {
+      _suiteAttr.file = suiteFileName;
+    }
 
     _cases.forEach(function(testcase) {
       var lastNode = testcase.testcase[testcase.testcase.length - 1];
